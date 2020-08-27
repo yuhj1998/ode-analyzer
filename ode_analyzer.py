@@ -15,6 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import scipy.optimize as pyopt
+import matplotlib.pyplot as plt
 
 
 class OdeModel(nn.Module):
@@ -98,7 +99,7 @@ class OdeModel(nn.Module):
         init_val = torch.zeros(nS, n)
         for i in np.arange(n):
             init_val[:, i] = torch.Tensor(nS).uniform_(region[2*i], region[2*i+1])
-        paths = self.ode_run(init_val, dt, T=1, Tout=T/nOut)
+        paths = self.ode_run(init_val, dt, T, Tout=T/nOut)
         paths = paths.reshape([-1, n])
         return paths
     
@@ -156,6 +157,88 @@ class OdeAnalyzer(nn.Module):
                 print(f'T: {T.data}', end=' ')
                 print(f'lr: {last_lr}', flush=True)
         return x.detach().data, T.detach().data
+
+
+def estimate_Lyapunov_exp1(data, dt, P, J, m, K):
+    ''' a quick implementation of estimation largest Lyapunov index
+        based on only data (one components). 
+        dt: the time stepsize of the series
+        P:  mean period
+        J:  time lag
+        m:  embedding dimension
+        K:  number of distances used to fit the index
+    '''
+    # Step 0: prepare X
+    N = len(data)
+    M = N - (m-1)*J
+    nbs = np.zeros((M-2*K, ), dtype=int)
+    d = np.zeros((2*K, M-2*K), dtype=np.float64)
+    Xt = np.zeros((m, M), dtype=np.float64)
+    dmax = np.sqrt((np.max(data) - np.min(data))**2 * m) + 1.0
+    for j in np.arange(m):
+        Xt[j, :] = data[j*J:j*J+M]
+    X = Xt.transpose()
+
+    # Step 1: find neighbor index with minum distance to i
+    #         but with index distance > P
+    for j in np.arange(M-2*K):
+        dist = np.linalg.norm(X[0:M-2*K, :] - X[j, :],  ord=2, axis=1)
+        ii = np.arange(M-2*K)
+        i_mask = np.logical_and(ii >= j-P, ii <= j+P)
+        dist[i_mask] = dmax
+        nbs[j] = np.argmin(dist)
+
+    # Step 2: calculate d_j(i)
+    for i in np.arange(2*K):
+        j = np.arange(M-2*K)
+        j1 = j + i
+        j2 = nbs[j] + i
+        d[i, j] = np.linalg.norm(X[j1, :]-X[j2, :], ord=2, axis=1)
+
+    # Step 3: average over j
+    y = np.mean(np.log(d+1e-20), axis=1) / dt
+    ii = np.arange(int(0.2*K), 2*K)  # use only 80% data to fit
+    poly = np.polyfit(ii, y[ii], deg=1)
+    print('lsq coef =', poly)
+    print('Lyapunov index ~=', poly[0])
+    plt.subplot(224)
+    plt.plot(y)
+    plt.xlabel('k')
+    plt.ylabel('<log(d(k))>')
+    plt.title(f'Estimated Lyapunov index ~={poly[0]}')
+    plt.draw()
+    plt.pause(1)
+    plt.close()
+    return poly[0], y
+
+
+def plot_fft(x, y, th=1e-4):
+    """ Do FFT analysis on time series, estimate its mean period, 
+        which is used in `estimate_Lyapunov_exp1()`
+        x: independ variable
+        y: depend variable
+        th: threshold below which the frequency will not be plotted
+    """
+    n = x.size
+    Lx = x[-1]-x[0]
+    yf = np.fft.rfft(y)
+    xf = np.fft.rfftfreq(n, d=Lx/n)
+    fig = plt.figure(figsize=[9, 9])
+    ax = fig.add_subplot(211)
+    ax.plot(x, y)
+    plt.title('1) first component of ODE solution')
+
+    ax = fig.add_subplot(223)
+    yf = yf / (n/2)
+    ii = (np.abs(yf) > th)
+    ii[0] = False
+    plt.plot(xf[ii], np.abs(yf[ii]))
+    T0 = 1.0/np.mean(xf*np.abs(yf))
+    plt.title('2) power spectrum')
+    plt.draw()
+    plt.pause(2)
+    plt.close()
+    return T0
 
 
 if __name__ == '__main__':
