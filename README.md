@@ -23,7 +23,7 @@ Note that you need provide initial values for finding fixed points and limit cyc
 
 ## Examples
 
-Application to a determinisitic Langevin system 
+#### Application to a determinisitic Langevin system 
 
 $$
    x_t = v, \quad  v_t = - \gamma g(v) - U'(x)
@@ -44,3 +44,22 @@ Use
 
     python test_Langevin.py --help
 to see how to call with different parameters.  
+
+#### Application to the Lorenz system
+
+Lorenz system is a minimal 3-mode ODE system that exhibits chaotic solution.
+We include a method in `ode_analyzer.py` to estimate the largest Lyapunov index 
+of given solution data, which can be regarded as an indicator of chaos.
+
+Use
+
+    python test_Lorenz.py    
+to run the code with default parameters.
+
+Use
+
+    python test_Lorenz.py --help
+to see how to call with different parameters.  
+
+Note that to generate a chaotic solution parameter `r` need be larger than 24.06. 
+The value of `r` used by Lorenz is 28.
