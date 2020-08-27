@@ -4,9 +4,9 @@
 @File 	 : test_Lorenz.py
 @Time 	 : 2020/07/21
 @Author :  Haijn Yu <hyu@lsec.cc.ac.cn>
-@Desc	 : test ode_analyzer.py by applying it to Lorenz system
+@Desc	 : apply ode_analyzer.py to Lorenz system
 '''
-# %% 1. import library and set parameters
+
 import numpy as np
 import torch
 import ode_analyzer as oa
@@ -74,203 +74,50 @@ def plot_traj_structure(ode: oa.OdeModel,
     else:
         nLC = 0
 
-    f = plt.figure(figsize=[12, 10], dpi=144)
-    dt_out = T/nOut
-    ax = f.add_subplot(311)
-    nErrOut = nOut
-    ii = np.arange(nErrOut)
-    tt = ii*dt_out
-    
-    
+    f = plt.figure(figsize=[12, 4], dpi=144)
     ax = f.add_subplot(131)
+    ax.scatter(fixed_pts[:, 0], fixed_pts[:, 1], color='red', 
+                label='fixed points',
+               marker='+', alpha=0.9, edgecolors=None, zorder=5)
+    for ip in np.arange(nLC):
+        plt.plot(pLC[:, ip, 0], pLC[:, ip, 1], color='yellow', 
+                 label='limit cycles',
+                 linewidth=1, alpha=0.6, zorder=4)
     for ip in np.arange(nS):
-        plt.plot(p1[:, ip, 0], p1[:, ip, 1], '.',
-                 markersize=1, alpha=0.8, zorder=4)
-        plt.plot(p1[:, ip, 0], p1[:, ip, 1], color='grey',
-                 linewidth=0.5, alpha=0.2, zorder=1)
-        for ip in np.arange(nLC):
-            plt.plot(pLC[:, ip, 0], pLC[:, ip, 1], color='yellow',
-                     linewidth=1, alpha=0.6, zorder=4)
-        ax.scatter(fixed_pts[:, 0], fixed_pts[:, 1], color='red',
-                   marker='+', alpha=0.9, edgecolors=None,
-                   zorder=5)
+        plt.plot(p1[:, ip, 0], p1[:, ip, 1], 
+                 markersize=1, alpha=0.8, zorder=1)
+    # plt.legend(['fixed points', 'limit cycles'])
+    plt.legend()
     plt.xlabel('X')
     plt.ylabel('Y')
 
     ax = f.add_subplot(132)
     for ip in np.arange(nS):
-        plt.plot(p1[:, ip, 0], p1[:, ip, 2], '.',
-                 markersize=1, alpha=0.8, zorder=4)
-        plt.plot(p1[:, ip, 0], p1[:, ip, 2], color='grey',
-                 linewidth=0.5, alpha=0.2, zorder=1)
-        for ip in np.arange(nLC):
-            plt.plot(pLC[:, ip, 0], pLC[:, ip, 2], color='yellow',
-                     linewidth=1, alpha=0.6, zorder=4)
-        ax.scatter(fixed_pts[:, 0], fixed_pts[:, 2], color='red',
-                   marker='+', alpha=0.9, edgecolors=None,
-                   zorder=5)
+        plt.plot(p1[:, ip, 0], p1[:, ip, 2], 
+                 markersize=1, alpha=0.8, zorder=1)
+    for ip in np.arange(nLC):
+        plt.plot(pLC[:, ip, 0], pLC[:, ip, 2], color='yellow',
+                    linewidth=1, alpha=0.6, zorder=4)
+    ax.scatter(fixed_pts[:, 0], fixed_pts[:, 2], color='red',
+                marker='+', alpha=0.9, edgecolors=None,
+                zorder=5)
     plt.xlabel('X')
     plt.ylabel('Z')
 
     ax = f.add_subplot(133)
     for ip in np.arange(nS):
-        plt.plot(p1[:, ip, 1], p1[:, ip, 2], '.',
-                 markersize=1, alpha=0.8, zorder=4)
-        plt.plot(p1[:, ip, 1], p1[:, ip, 2], color='grey',
-                 linewidth=0.5, alpha=0.2, zorder=1)
-        for ip in np.arange(nLC):
-            plt.plot(pLC[:, ip, 1], pLC[:, ip, 2], color='yellow',
-                     linewidth=1, alpha=0.6, zorder=4)
-        ax.scatter(fixed_pts[:, 1], fixed_pts[:, 2], color='red',
-                   marker='+', alpha=0.9, edgecolors=None,
-                   zorder=5)
+        plt.plot(p1[:, ip, 1], p1[:, ip, 2],
+                 markersize=1, alpha=0.8, zorder=1)
+    for ip in np.arange(nLC):
+        plt.plot(pLC[:, ip, 1], pLC[:, ip, 2], color='yellow',
+                    linewidth=1, alpha=0.6, zorder=4)
+    ax.scatter(fixed_pts[:, 1], fixed_pts[:, 2], color='red',
+                marker='+', alpha=0.9, edgecolors=None,
+                zorder=5)
     plt.xlabel('Y')
     plt.ylabel('Z')
-
+    
     plt.savefig(savefile+'.pdf', bbox_inches='tight', dpi=288)
-
-
-# class ODEAnalyzer(nn.Module):
-#     """ A tools to analyze the ODE system represented
-#     by neural network """
-
-#     def __init__(self, OdeModel):
-#         super().__init__()
-#         self.ode = OdeModel
-
-#     def find_fixed_pt(ode, x0):
-#         def ode_fun(x):
-#             ''' need convert x to tensor '''
-#             shape = x.shape
-#             x0 = torch.tensor(x).float().view(-1, ode.nVar)
-#             f = ode(x0)
-#             return f.detach().numpy().reshape(shape)
-    
-#         xfix = pyopt.fsolve(ode_fun, x0, full_output=1)
-#         return xfix
-    
-    
-#     def find_limit_cycle(ode_net, x0, T0, niter=1000, lr=0.0128, d_fix=1):
-#         """ Find the limit cycle for given initial points and period
-#             by using least square method with Adam optimizer in pytorch
-#             d_fix: x0[d_fix] is fixed
-#          """
-#         x = torch.nn.Parameter(torch.tensor(x0, requires_grad=True).float())
-#         T = torch.nn.Parameter(torch.tensor(T0, requires_grad=True).float())
-#         optimizer = optim.SGD([{'params': [x, T]}], lr=lr,
-#                               momentum=0.9, nesterov=True)
-#         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-#                                                          'min',
-#                                                          factor=0.5,
-#                                                          patience=1)
-#         nt = 100
-#         T_beta = 10
-#         Tth = torch.tensor(T0, requires_grad=False).float()
-#         for e in range(niter):
-#             xmiddle = ode_net.ode_rk3(x, T/2./nt, nt)
-#             xt = ode_net.ode_rk3(xmiddle, T/2./nt, nt)
-#             loss = (torch.sum((xt-x)**2) + T_beta * F.relu(Tth/3-T)
-#                     + T_beta * F.relu(1.0-torch.sum(xmiddle-x)**2))
-#             optimizer.zero_grad()
-#             loss.backward()
-#             x.grad.data[d_fix] = 0
-#             nn.utils.clip_grad_norm_([x, T], 0.5)
-#             optimizer.step()
-    
-#             scheduler.step(loss)
-#             last_lr = optimizer.param_groups[0]["lr"]
-#             if loss < 5e-6:
-#                 break
-    
-#             if e % 5 == 0 or e == niter-1:
-#                 print(f'iter:{e+1:4d}/{niter}', end=' ')
-#                 print(f'loss: {loss.item():.3e}', end=' ')
-#                 print(f'x: {x.data}', end=' ')
-#                 print(f'T: {T.data}', end=' ')
-#                 print(f'lr: {last_lr}', flush=True)
-#         return x.detach().data, T.detach().data
-    
-
-def estimate_Lyapunov_exp1(data, dt, P, J, m, K):
-    ''' a quick implementation
-        dt: the time stepsize of the series
-        P:  mean period
-        J:  time lag
-        m:  embedding dimension
-        K:  number of distances used to fit the index
-    '''
-    # Step 0: prepare X
-    N = len(data)
-    M = N - (m-1)*J
-    nbs = np.zeros((M-2*K, ), dtype=int)
-    d = np.zeros((2*K, M-2*K), dtype=np.float64)
-    Xt = np.zeros((m, M), dtype=np.float64)
-    dmax = np.sqrt((np.max(data) - np.min(data))**2 * m) + 1.0
-    for j in np.arange(m):
-        Xt[j, :] = data[j*J:j*J+M]
-    X = Xt.transpose()
-
-    # Step 1: find neighbor index with minum distance to i
-    #         but with index distance > P
-    for j in np.arange(M-2*K):
-        dist = np.linalg.norm(X[0:M-2*K, :] - X[j, :],  ord=2, axis=1)
-        # dist = np.sqrt(np.sum((X[0:M-2*K, :] - X[j, :])**2, axis=1))
-        ii = np.arange(M-2*K)
-        i_mask = np.logical_and(ii >= j-P, ii <= j+P)
-        dist[i_mask] = dmax
-        nbs[j] = np.argmin(dist)
-
-    # Step 2: calculate d_j(i)
-    for i in np.arange(2*K):
-        j = np.arange(M-2*K)
-        j1 = j + i
-        j2 = nbs[j] + i
-        d[i, j] = np.linalg.norm(X[j1, :]-X[j2, :], ord=2, axis=1)
-        # d[i, j] = np.sqrt(np.sum((X[j1, :]-X[j2, :])**2))
-
-    # Step 3: average over j
-    y = np.mean(np.log(d+1e-20), axis=1) / dt   # what if d==0?
-    ii = np.arange(int(0.2*K), 2*K)  # use only 80% data to fit
-    poly = np.polyfit(ii, y[ii], deg=1)
-    print('lsq coef =', poly)
-    print('Lyapunov index ~=', poly[0])
-    plt.subplot(224)
-    plt.plot(y)
-    plt.xlabel('k')
-    plt.ylabel('<log(d(k))>')
-    plt.title(f'Estimated Lyapunov index ~={poly[0]}')
-    plt.draw()
-    plt.pause(1)
-    plt.close()
-    return poly[0], y
-
-
-def plot_fft(x, y, th=1e-4):
-    """ Do FFT analysis on time series, find its mean period
-        x: independ variable
-        y: depend variable
-        th: threshold below which the frequency will not be plotted
-    """
-    n = x.size
-    Lx = x[-1]-x[0]
-    yf = np.fft.rfft(y)
-    # yy = np.fft.irfft(yf)
-    xf = np.fft.rfftfreq(n, d=Lx/n)
-    fig = plt.figure(figsize=[9, 9])
-    ax = fig.add_subplot(211)
-    ax.plot(x, y)
-    plt.title('1) first component of ODE solution')
-
-    ax = fig.add_subplot(223)
-    yf = yf / (n/2)   # obtain corret amplitude
-    ii = (np.abs(yf) > th)
-    ii[0] = False
-    plt.plot(xf[ii], np.abs(yf[ii]))
-    T0 = 1.0/np.mean(xf*np.abs(yf))
-    plt.title('2) power spectrum')
-    plt.draw()
-    plt.pause(2)
-    return T0
 
 
 def calc_Lyapunov_exp1(lz_net, T0=5, nOut=5000, dt=0.01):
@@ -283,11 +130,11 @@ def calc_Lyapunov_exp1(lz_net, T0=5, nOut=5000, dt=0.01):
     data = data[nOut_tot-nOut:nOut_tot]
     print(f'dt={dt}, T={T},  len(data)=', data.shape)
     x = np.arange(nOut) * dt
-    Tmean = plot_fft(x, data)
+    Tmean = oa.plot_fft(x, data)
     K = int(2/dt)
     P = nOut//15
     print('Tmean=', Tmean)
-    Lindex, yy = estimate_Lyapunov_exp1(data, dt, P=P, J=11, m=5, K=K)
+    Lindex, yy = oa.estimate_Lyapunov_exp1(data, dt, P=P, J=11, m=5, K=K)
 
 
 def analyze_Lorenz_structure(ode_net, r, b, lr, niter):
@@ -322,18 +169,18 @@ def analyze_Lorenz_structure(ode_net, r, b, lr, niter):
         nLC = 2
         x0 = np.zeros((nLC, ode_net.nVar))
         T0 = np.zeros((nLC, 1))
-        x0[0] = np.array([1.1138, 1.8421, 3.1879], dtype=float)
-        T0[0] = 1.3027
-        x0[1] = np.array([-1.1055, -1.8277, 3.1954], dtype=float)
-        T0[1] = 1.3027
+        x0[0] = np.array([1.1, 1.8, 3.2], dtype=float)
+        T0[0] = 1.3
+        x0[1] = np.array([-1.1, -1.8, 3.2], dtype=float)
+        T0[1] = 1.3
     elif r == 22:
         nLC = 2
         x0 = np.zeros((nLC, ode_net.nVar))
         T0 = np.zeros((nLC, 1))
-        x0[0] = np.array([10.3266, 13.3565, 20.1329], dtype=float)
-        T0[0] = 0.7638
-        x0[1] = np.array([-10.3266, -13.3565, 20.1329], dtype=float)
-        T0[1] = 0.7638
+        x0[0] = np.array([10.3, 13.4, 20.1], dtype=float)
+        T0[0] = 0.76
+        x0[1] = np.array([-10.3, -13.4, 20.1], dtype=float)
+        T0[1] = 0.76
     else: 
         nLC = 0
     lcs = np.zeros((nLC, nPC+1), dtype=float)
@@ -349,12 +196,12 @@ def analyze_Lorenz_structure(ode_net, r, b, lr, niter):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Lorenz example')
-    parser.add_argument('-r', type=float, default=16,
+    parser.add_argument('-r', type=float, default=22,
                         help='scaled Rayleigh number')
     parser.add_argument('-lr', type=float, default=0.032, metavar='LR',
                         help='learning rate (default: 0.032)')
-    parser.add_argument('--niter', type=int, default=100, metavar='epoch',
-                        help='niter (default:100, <100 for testing)')
+    parser.add_argument('--niter', type=int, default=40, metavar='epoch',
+                        help='niter (default:200)')
     args = parser.parse_args()
     print(args)
 
@@ -366,14 +213,12 @@ if __name__ == '__main__':
     lr = args.lr
 
     # %% test Lyapunov index of Lorenz system
-    r2 = 28
-    lz_net2 = LorenzNet(r=r2, sigma=sigma, b=b)
-    print(f'Calc Lyapunov index of Lorenz(r={r2}, sigma={sigma}, b={b})')
-    calc_Lyapunov_exp1(lz_net2, nOut=5000, dt=0.01)
+    lz_net = LorenzNet(r=r, sigma=sigma, b=b)
+    print(f'Calc Lyapunov index of Lorenz(r={r}, sigma={sigma}, b={b})')
+    calc_Lyapunov_exp1(lz_net, nOut=5000, dt=0.01)
 
     # %% Calculate the fixed points and limit cycles of Lorenz system
-    lz_net = LorenzNet(r=r, sigma=sigma, b=b)
     fixed_pts, lcs = analyze_Lorenz_structure(lz_net, r, b, lr, niter)
     plot_traj_structure(lz_net, T=30, fixed_pts=fixed_pts, lcs=lcs,
-                        dt=0.001, nOut=100,
+                        dt=0.001, nOut=200,
                         savefile='Lorenz_structure')
