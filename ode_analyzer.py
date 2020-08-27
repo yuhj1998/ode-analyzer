@@ -98,7 +98,7 @@ class OdeModel(nn.Module):
         init_val = torch.zeros(nS, n)
         for i in np.arange(n):
             init_val[:, i] = torch.Tensor(nS).uniform_(region[2*i], region[2*i+1])
-        paths = self.ode_run(init_val, dt, T=1, Tout=T/nOut)
+        paths = self.ode_run(init_val, dt, T, Tout=T/nOut)
         paths = paths.reshape([-1, n])
         return paths
     
